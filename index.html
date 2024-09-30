@@ -81,7 +81,7 @@
   <div id="cameraPermissionPopup">
     <h2>Allow Camera Access</h2>
     <p>This experience requires access to your camera to track your emotions while watching the video.</p>
-    <p><a href="https://yaronskihoma.github.io/VideoAdTest/privacypolicy.html" target="_blank">Read our Privacy Policy</a></p>
+    <p><a href="https://YOUR_DOMAIN/privacy-policy" target="_blank">Read our Privacy Policy</a></p>
     <button id="allowCameraBtn">Allow Camera</button>
   </div>
 
@@ -110,11 +110,28 @@
 
     const statisticsUploader = new MorphCastStatistics.StatisticsUploader(statsConfig);
 
+    // Get device and browser details
+    function getDeviceDetails() {
+      const deviceDetails = {
+        browser: navigator.userAgent,
+        platform: navigator.platform,
+        date: new Intl.DateTimeFormat('en-GB', {
+          timeZone: 'Europe/Warsaw',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        }).format(new Date())
+      };
+      return deviceDetails;
+    }
+
     // Camera permission logic
     function requestCameraAccess() {
       navigator.mediaDevices.getUserMedia({ video: true })
         .then(() => {
-          // Close camera permission popup and show Step 1 button
           cameraPermissionPopup.style.display = 'none';
           overlay.style.display = 'none';
           watchBtn.style.display = 'inline-block';
@@ -147,7 +164,6 @@
         morphcastInstance = { start, stop };
       });
 
-    // Step 1: Watch Video
     watchBtn.addEventListener('click', async () => {
       videoPlayer.style.display = 'block'; // Show the video
       if (morphcastInstance) {
@@ -166,7 +182,6 @@
         videoPlayer.msRequestFullscreen(); // IE/Edge
       }
 
-      // Disable attempts to close fullscreen or stop playback
       window.onbeforeunload = function() {
         return "Video is playing, please don't close the window.";
       };
@@ -186,7 +201,6 @@
         window.onbeforeunload = null; // Allow page exit after video ends
         removeExitPrevention();
 
-        // Show the download report popup
         overlay.style.display = 'block';
         popup.style.display = 'block';
       };
@@ -205,7 +219,7 @@
       document.removeEventListener("msfullscreenchange", preventExit);
     }
 
-// Collect data from all relevant MorphCast events
+    // Collect data from all relevant MorphCast events
 
     // FACE_AROUSAL_VALENCE
     window.addEventListener(CY.modules().FACE_AROUSAL_VALENCE.eventName, (evt) => {
@@ -288,6 +302,12 @@
         ].join(','));
       });
 
+      // Append device and browser details to the end of the CSV
+      const deviceDetails = getDeviceDetails();
+      csvRows.push(`\nDevice Information:\nBrowser: ${deviceDetails.browser}`);
+      csvRows.push(`Platform: ${deviceDetails.platform}`);
+      csvRows.push(`Date (Warsaw Time): ${deviceDetails.date}`);
+      
       return csvRows.join('\n');
     }
 
@@ -298,20 +318,21 @@
       const a = document.createElement('a');
       a.style.display = 'none';
       a.href = url;
-      a.download = 'emotion_tracking_report.csv';
+      a.download = `emotion_tracking_report_${Date.now()}.csv`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
     }
 
     function downloadJSON() {
-      const jsonData = JSON.stringify(trackingData, null, 2);
+      const deviceDetails = getDeviceDetails();
+      const jsonData = JSON.stringify({ trackingData, deviceDetails }, null, 2);
       const blob = new Blob([jsonData], { type: 'application/json' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.style.display = 'none';
       a.href = url;
-      a.download = 'emotion_tracking_report.json';
+      a.download = `emotion_tracking_report_${Date.now()}.json`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
