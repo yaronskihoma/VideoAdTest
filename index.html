@@ -13,9 +13,10 @@
     }
     video {
       width: 100%;
-      max-width: 600px; /* Ensures video scales on large and small devices */
+      max-width: 600px;
       height: auto;
       margin-top: 20px;
+      display: none;
     }
     button {
       padding: 10px 20px;
@@ -30,6 +31,27 @@
     #buttonContainer {
       margin: 20px 0;
     }
+    #popup {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: white;
+      border: 2px solid #4CAF50;
+      padding: 20px;
+      z-index: 1000;
+    }
+    #overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 999;
+    }
   </style>
 </head>
 <body>
@@ -37,58 +59,61 @@
   <h1>Watch the Video and Track Your Emotions</h1>
 
   <div id="buttonContainer">
-    <button id="watchBtn">Watch Video</button>
-    <button id="privacyBtn">Privacy Policy</button>
+    <button id="watchBtn">Step 1: Watch Video</button>
   </div>
 
   <div id="videoContainer">
-    <video id="videoPlayer" controls>
+    <video id="videoPlayer" preload="auto">
       <source src="https://assets.homa-cloud.com/clicqla3j02wfyq01nkyf7621/853d663c-39ba-4755-bf72-1da193d2e2d4/HIR_C67_V4_WW_VID_1080x1920_33s.mp4" type="video/mp4">
       Your browser does not support the video tag.
     </video>
   </div>
 
-  <button onclick="downloadCSV()">Download CSV</button>
-  <button onclick="downloadJSON()">Download JSON</button>
+  <div id="overlay"></div>
+  <div id="popup">
+    <h2>Emotion tracking is finished!</h2>
+    <button id="downloadReportBtn">Download Report</button>
+  </div>
 
   <script src="https://sdk.morphcast.com/mphtools/v1.1/mphtools.js" data-config="cameraPrivacyPopup, compatibilityUI, compatibilityAutoCheck"></script>
   <script src="https://ai-sdk.morphcast.com/v1.16/ai-sdk.js"></script>
   <script src="https://sdk.morphcast.com/emotion-statistics/v1.0-beta/script.js"></script>
+  <!-- FileSaver.js for downloading files -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
   <script>
     let trackingData = [];
-
+    let morphcastInstance = null;
     const watchBtn = document.getElementById('watchBtn');
-    const videoContainer = document.getElementById('videoContainer');
     const videoPlayer = document.getElementById('videoPlayer');
+    const popup = document.getElementById('popup');
+    const overlay = document.getElementById('overlay');
+    const downloadReportBtn = document.getElementById('downloadReportBtn');
 
     const statsConfig = {
       sendDatainterval: 5000,
       tickInterval: 1000,
       stopAfter: 7200000,
-      licenseKey: "sk9bebf5467e79a53a382ee56f1293c7e03b406b94f0af"
+      licenseKey: "your-license-key"
     };
 
     const statisticsUploader = new MorphCastStatistics.StatisticsUploader(statsConfig);
 
-    // Load MorphCast AI modules
-    let morphcastInstance = null;
-
     CY.loader()
-      .licenseKey("sk9bebf5467e79a53a382ee56f1293c7e03b406b94f0af")
+      .licenseKey("your-license-key")
       .addModule(CY.modules().FACE_AROUSAL_VALENCE.name, { smoothness: 0.70 })
       .addModule(CY.modules().FACE_EMOTION.name, { smoothness: 0.40 })
       .addModule(CY.modules().FACE_ATTENTION.name, { smoothness: 0.83 })
       .addModule(CY.modules().FACE_DETECTOR.name, { maxInputFrameSize: 320, smoothness: 0.83 })
+      .addModule(CY.modules().ALARM_NO_FACE.name, { timeWindowMs: 10000, initialToleranceMs: 7000, threshold: 0.75 })
+      .addModule(CY.modules().DATA_AGGREGATOR.name, { initialWaitMs: 2000, periodMs: 1000 })
       .load()
       .then(({ start, stop }) => {
         morphcastInstance = { start, stop };
       });
 
-    // When the watch button is clicked
     watchBtn.addEventListener('click', async () => {
-      videoContainer.style.display = 'block'; // Show video
-
+      videoPlayer.style.display = 'block'; // Show the video
       if (morphcastInstance) {
         await morphcastInstance.start();
         await statisticsUploader.start();
@@ -100,21 +125,49 @@
       } else if (videoPlayer.mozRequestFullScreen) {
         videoPlayer.mozRequestFullScreen(); // Firefox
       } else if (videoPlayer.webkitRequestFullscreen) {
-        videoPlayer.webkitRequestFullscreen(); // Chrome, Safari and Opera
+        videoPlayer.webkitRequestFullscreen(); // Chrome, Safari, and Opera
       } else if (videoPlayer.msRequestFullscreen) {
         videoPlayer.msRequestFullscreen(); // IE/Edge
       }
 
-      videoPlayer.play(); // Play the video
+      // Disable attempts to close fullscreen or stop playback
+      window.onbeforeunload = function() {
+        return "Video is playing, please don't close the window.";
+      };
+      document.addEventListener("fullscreenchange", preventExit, false);
+      document.addEventListener("mozfullscreenchange", preventExit, false);
+      document.addEventListener("webkitfullscreenchange", preventExit, false);
+      document.addEventListener("msfullscreenchange", preventExit, false);
+
+      videoPlayer.play();
 
       videoPlayer.onended = async () => {
         if (morphcastInstance) {
           await statisticsUploader.stop();
           await morphcastInstance.stop();
         }
-        alert("Video ended. Emotion tracking stopped.");
+
+        window.onbeforeunload = null; // Allow page exit after video ends
+        removeExitPrevention();
+
+        // Show the download report popup
+        overlay.style.display = 'block';
+        popup.style.display = 'block';
       };
     });
+
+    function preventExit() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen(); // Re-enter fullscreen if exited
+      }
+    }
+
+    function removeExitPrevention() {
+      document.removeEventListener("fullscreenchange", preventExit);
+      document.removeEventListener("mozfullscreenchange", preventExit);
+      document.removeEventListener("webkitfullscreenchange", preventExit);
+      document.removeEventListener("msfullscreenchange", preventExit);
+    }
 
 // Collect data from all relevant MorphCast events
 
@@ -187,13 +240,15 @@
       console.log(frameData);
     });
 
+    // Convert collected data to CSV
     function convertToCSV(data) {
-      const headers = ['mediaTime', 'attention', 'dominantEmotion', 'arousal', 'valence', 'emotion'];
+      const headers = ['mediaTime', 'type', 'attention', 'dominantEmotion', 'arousal', 'valence', 'emotions', 'totalFaces', 'status', 'alarmTriggered', 'aggregatedData'];
       const csvRows = [headers.join(',')];
 
       data.forEach(row => {
         csvRows.push([
-          row.mediaTime, row.attention, row.dominantEmotion, row.arousal, row.valence, JSON.stringify(row.emotion)
+          row.mediaTime, row.type, row.attention || '', row.dominantEmotion || '', row.arousal || '', row.valence || '',
+          JSON.stringify(row.emotions || ''), row.totalFaces || '', row.status || '', row.alarmTriggered || '', JSON.stringify(row.aggregatedData || '')
         ].join(','));
       });
 
@@ -225,6 +280,13 @@
       a.click();
       window.URL.revokeObjectURL(url);
     }
+
+    // Download both CSV and JSON on report download
+    downloadReportBtn.addEventListener('click', () => {
+      downloadCSV();
+      downloadJSON();
+    });
+
   </script>
 
 </body>
