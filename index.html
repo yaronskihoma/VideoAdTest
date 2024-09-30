@@ -164,6 +164,7 @@
         morphcastInstance = { start, stop };
       });
 
+    // Step 1: Watch Video
     watchBtn.addEventListener('click', async () => {
       videoPlayer.style.display = 'block'; // Show the video
       if (morphcastInstance) {
@@ -201,10 +202,26 @@
         window.onbeforeunload = null; // Allow page exit after video ends
         removeExitPrevention();
 
+        // Exit full screen after video ends
+        exitFullscreen();
+
+        // Show the download report popup
         overlay.style.display = 'block';
         popup.style.display = 'block';
       };
     });
+
+    function exitFullscreen() {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.mozCancelFullScreen) { // Firefox
+        document.mozCancelFullScreen();
+      } else if (document.webkitExitFullscreen) { // Chrome, Safari and Opera
+        document.webkitExitFullscreen();
+      } else if (document.msExitFullscreen) { // IE/Edge
+        document.msExitFullscreen();
+      }
+    }
 
     function preventExit() {
       if (!document.fullscreenElement) {
@@ -219,6 +236,7 @@
       document.removeEventListener("msfullscreenchange", preventExit);
     }
 
+    
     // Collect data from all relevant MorphCast events
 
     // FACE_AROUSAL_VALENCE
@@ -289,6 +307,7 @@
       trackingData.push(frameData);
       console.log(frameData);
     });
+
 
     // Convert collected data to CSV
     function convertToCSV(data) {
