@@ -116,17 +116,75 @@
       };
     });
 
+// Collect data from all relevant MorphCast events
+
+    // FACE_AROUSAL_VALENCE
+    window.addEventListener(CY.modules().FACE_AROUSAL_VALENCE.eventName, (evt) => {
+      let frameData = {
+        mediaTime: videoPlayer.currentTime,
+        type: 'FACE_AROUSAL_VALENCE',
+        valence: evt.detail.output.valence,
+        arousal: evt.detail.output.arousal
+      };
+      trackingData.push(frameData);
+      console.log(frameData);
+    });
+
+    // FACE_EMOTION
+    window.addEventListener(CY.modules().FACE_EMOTION.eventName, (evt) => {
+      let frameData = {
+        mediaTime: videoPlayer.currentTime,
+        type: 'FACE_EMOTION',
+        dominantEmotion: evt.detail.output.dominantEmotion,
+        emotions: evt.detail.output.emotion
+      };
+      trackingData.push(frameData);
+      console.log(frameData);
+    });
+
+    // FACE_ATTENTION
     window.addEventListener(CY.modules().FACE_ATTENTION.eventName, (evt) => {
       let frameData = {
         mediaTime: videoPlayer.currentTime,
-        attention: evt.detail.output.attention,
-        dominantEmotion: evt.detail.output.dominantEmotion,
-        arousal: evt.detail.output.arousal,
-        valence: evt.detail.output.valence,
-        emotion: evt.detail.output.emotion
+        type: 'FACE_ATTENTION',
+        attention: evt.detail.output.attention
       };
       trackingData.push(frameData);
-      console.log(frameData); // Optional: to see the data in the console
+      console.log(frameData);
+    });
+
+    // FACE_DETECTOR
+    window.addEventListener(CY.modules().FACE_DETECTOR.eventName, (evt) => {
+      let frameData = {
+        mediaTime: videoPlayer.currentTime,
+        type: 'FACE_DETECTOR',
+        totalFaces: evt.detail.totalFaces,
+        status: evt.detail.status
+      };
+      trackingData.push(frameData);
+      console.log(frameData);
+    });
+
+    // ALARM_NO_FACE
+    window.addEventListener(CY.modules().ALARM_NO_FACE.eventName, (evt) => {
+      let frameData = {
+        mediaTime: videoPlayer.currentTime,
+        type: 'ALARM_NO_FACE',
+        alarmTriggered: true
+      };
+      trackingData.push(frameData);
+      console.log(frameData);
+    });
+
+    // DATA_AGGREGATOR
+    window.addEventListener(CY.modules().DATA_AGGREGATOR.eventName, (evt) => {
+      let frameData = {
+        mediaTime: videoPlayer.currentTime,
+        type: 'DATA_AGGREGATOR',
+        aggregatedData: evt.detail.output
+      };
+      trackingData.push(frameData);
+      console.log(frameData);
     });
 
     function convertToCSV(data) {
