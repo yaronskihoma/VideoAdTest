@@ -1,0 +1,56 @@
+<body>
+<script src="https://sdk.morphcast.com/mphtools/v1.1/mphtools.js" data-config="cameraPrivacyPopup, compatibilityUI, compatibilityAutoCheck"></script>
+<script src="https://ai-sdk.morphcast.com/v1.16/ai-sdk.js"></script>
+<script src="https://sdk.morphcast.com/emotion-statistics/v1.0-beta/script.js"></script>
+<script>
+
+      const statsConfig = {
+            sendDatainterval: 5000,
+            tickInterval: 1000,
+            stopAfter: 7200000,
+            licenseKey: "sk9bebf5467e79a53a382ee56f1293c7e03b406b94f0af"
+          };
+      const statisticsUploader = new MorphCastStatistics.StatisticsUploader(statsConfig);
+  
+CY.loader()
+  .licenseKey("sk9bebf5467e79a53a382ee56f1293c7e03b406b94f0af")
+  .addModule(CY.modules().FACE_AROUSAL_VALENCE.name, {smoothness: 0.70})
+  .addModule(CY.modules().FACE_ATTENTION.name, {smoothness: 0.83})
+  .addModule(CY.modules().DATA_AGGREGATOR.name, {initialWaitMs: 2000, periodMs: 1000})
+  .load()
+.then(async ({ start, stop }) => {
+      
+      await start();
+      await statisticsUploader.start();
+
+      setTimeout(async () => {
+          await statisticsUploader.stop();
+          await stop();
+      }, statsConfig.stopAfter);
+
+    });
+
+
+window.addEventListener(CY.modules().FACE_AROUSAL_VALENCE.eventName, (evt) => {
+  console.log('FACE_AROUSAL_VALENCE result', evt.detail);
+});
+
+window.addEventListener(CY.modules().FACE_ATTENTION.eventName, (evt) => {
+  console.log('FACE_ATTENTION result', evt.detail);
+});
+
+window.addEventListener(CY.modules().DATA_AGGREGATOR.eventName, (evt) => {
+  console.log('DATA_AGGREGATOR result', evt.detail);
+});
+
+MphTools.CameraPrivacyPopup.setText({
+   "title": "Allow us to use your camera",
+   "description": "This experience is designed to be viewed with your camera on. The next screen will ask your consent to access data from your camera.",
+   "url": "https://YOUR_DOMAIN/<YOUR_PRIVACY_POLICY>"
+});
+
+</script>
+
+<!-- your body part -->
+
+</body>
