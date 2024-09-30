@@ -8,29 +8,74 @@
     body {
       font-family: Arial, sans-serif;
       text-align: center;
-      margin-top: 50px;
+      margin: 0;
+      padding: 0;
     }
     video {
-      width: 80%;
+      width: 100%;
+      max-width: 600px; /* Ensures video scales on large and small devices */
       height: auto;
       margin-top: 20px;
     }
     button {
       padding: 10px 20px;
       font-size: 16px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
       cursor: pointer;
+      border-radius: 5px;
+      margin-top: 20px;
+    }
+    #videoContainer {
+      display: none;
+    }
+    #privacyModal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+    }
+    #modalContent {
+      position: relative;
+      margin: auto;
+      top: 50px;
+      padding: 20px;
+      background-color: white;
+      width: 80%;
+      max-width: 600px;
+      border-radius: 10px;
     }
   </style>
 </head>
 <body>
 
   <h1>Watch the Video and Track Your Emotions</h1>
+
   <button id="watchBtn">Watch Video</button>
-  
-  <video id="videoPlayer" controls>
-    <source src="https://assets.homa-cloud.com/clicqla3j02wfyq01nkyf7621/853d663c-39ba-4755-bf72-1da193d2e2d4/HIR_C67_V4_WW_VID_1080x1920_33s.mp4" type="video/mp4">
-    Your browser does not support the video tag.
-  </video>
+
+  <div id="videoContainer">
+    <video id="videoPlayer" controls>
+      <source src="https://assets.homa-cloud.com/clicqla3j02wfyq01nkyf7621/853d663c-39ba-4755-bf72-1da193d2e2d4/HIR_C67_V4_WW_VID_1080x1920_33s.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+  </div>
+
+  <!-- Privacy Policy Button -->
+  <button id="privacyBtn">Privacy Policy</button>
+
+  <!-- Modal for Privacy Policy -->
+  <div id="privacyModal">
+    <div id="modalContent">
+      <h2>Privacy Policy</h2>
+      <p>Your privacy policy text goes here...</p>
+      <button id="closeModal">Close</button>
+    </div>
+  </div>
 
   <script src="https://sdk.morphcast.com/mphtools/v1.1/mphtools.js" data-config="cameraPrivacyPopup, compatibilityUI, compatibilityAutoCheck"></script>
   <script src="https://ai-sdk.morphcast.com/v1.16/ai-sdk.js"></script>
@@ -38,6 +83,7 @@
 
   <script>
     const watchBtn = document.getElementById('watchBtn');
+    const videoContainer = document.getElementById('videoContainer');
     const videoPlayer = document.getElementById('videoPlayer');
     
     const statsConfig = {
@@ -65,8 +111,19 @@
         morphcastInstance = { start, stop };
       });
 
+    // Detect if a camera is available
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(function(stream) {
+        // Camera is available
+      })
+      .catch(function(err) {
+        alert("No camera detected. Please connect a camera to proceed.");
+      });
+
     // When the watch button is clicked
     watchBtn.addEventListener('click', async () => {
+      videoContainer.style.display = 'block'; // Show video
+
       if (morphcastInstance) {
         await morphcastInstance.start();
         await statisticsUploader.start();
@@ -115,6 +172,26 @@
       "description": "This experience is designed to be viewed with your camera on. The next screen will ask your consent to access data from your camera.",
       "url": "https://YOUR_DOMAIN/privacy-policy"
     });
+
+    // Privacy Policy Modal
+    const privacyBtn = document.getElementById('privacyBtn');
+    const privacyModal = document.getElementById('privacyModal');
+    const closeModal = document.getElementById('closeModal');
+
+    privacyBtn.onclick = function() {
+      privacyModal.style.display = 'block';
+    }
+
+    closeModal.onclick = function() {
+      privacyModal.style.display = 'none';
+    }
+
+    window.onclick = function(event) {
+      if (event.target == privacyModal) {
+        privacyModal.style.display = 'none';
+      }
+    }
+
   </script>
 
 </body>
